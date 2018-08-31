@@ -68,6 +68,7 @@ def train(args, extra_args):
 
     model = learn(
         env=env,  
+        env_id=env_id,
         seed=seed,
         total_timesteps=total_timesteps,
         **alg_kwargs

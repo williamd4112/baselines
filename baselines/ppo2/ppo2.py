@@ -91,16 +91,20 @@ class Model(object):
 
 class Runner(AbstractEnvRunner):
 
-    def __init__(self, *, env, model, nsteps, gamma, lam):
+    def __init__(self, *, env, model, nsteps, gamma, lam, mbexp):
         super().__init__(env=env, model=model, nsteps=nsteps)
         self.lam = lam
         self.gamma = gamma
+        self.mbexp = mbexp
 
     def run(self):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones, mb_neglogpacs = [],[],[],[],[],[]
         mb_states = self.states
         epinfos = []
         for _ in range(self.nsteps):
+            # actions(1 x act_dim), values(1,), neglogpacs(1,) <= because we just use one thread
+            # TODO: Use MBEXP to select action, states just None
+            # MBEXP should return action, values, neglogpacs
             actions, values, self.states, neglogpacs = self.model.step(self.obs, S=self.states, M=self.dones)
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
@@ -149,7 +153,7 @@ def constfn(val):
         return val
     return f
 
-def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
+def learn(*, network, env, env_id, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0, lr=3e-4,
             vf_coef=0.5,  max_grad_norm=0.5, gamma=0.99, lam=0.95,
             log_interval=10, nminibatches=4, noptepochs=4, cliprange=0.2,
             save_interval=0, load_path=None, **network_kwargs):
@@ -206,7 +210,6 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
     
 
     '''
-    
     set_global_seeds(seed)
 
     if isinstance(lr, float): lr = constfn(lr)
@@ -233,7 +236,19 @@ def learn(*, network, env, total_timesteps, seed=None, nsteps=2048, ent_coef=0.0
     model = make_model()
     if load_path is not None:
         model.load(load_path)
-    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam)
+
+    #################################
+    # MBEXP                         #
+    #################################
+    from baselines.ppo2.mbexp import MBEXP
+    def mbexp_pi(obss, states, dones):
+        # s is np.ndarray
+        actions, values, states, neglogpacs = model.step(obs, S=states, M=dones)
+        return actions[0], values[0], states[0], neglogpacs[0]
+    mbexp = MBEXP(env, env_id, mbexp_pi)
+    ##################################
+
+    runner = Runner(env=env, model=model, nsteps=nsteps, gamma=gamma, lam=lam, mbexp=mbexp)
 
     epinfobuf = deque(maxlen=100)
     tfirststart = time.time()

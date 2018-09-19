@@ -20,7 +20,7 @@ def nature_cnn(unscaled_images, **conv_kwargs):
     return activ(fc(h3, 'fc1', nh=512, init_scale=np.sqrt(2)))
 
 
-def mlp(num_layers=2, num_hidden=64, activation=tf.tanh):
+def mlp(num_layers=2, num_hidden=64, activation=tf.tanh, **kwargs):
     """
     Simple fully connected layer policy. Separate stacks of fully-connected layers are used for policy and value function estimation.
     More customized fully-connected policies can be obtained by using PolicyWithV class directly.

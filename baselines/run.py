@@ -68,7 +68,12 @@ def train(args, extra_args):
 
     model = learn(
         env=env,  
+        # Custom #
         env_id=env_id,
+        render_train=args.render_train, 
+        use_mbexp=args.use_mbexp,
+        log_dir=args.log_dir,
+        ##########
         seed=seed,
         total_timesteps=total_timesteps,
         **alg_kwargs
@@ -207,7 +212,7 @@ def main():
     
     if MPI is None or MPI.COMM_WORLD.Get_rank() == 0:
         rank = 0
-        logger.configure()
+        logger.configure(dir=args.log_dir)
     else:
         logger.configure(format_strs = [])
         rank = MPI.COMM_WORLD.Get_rank()

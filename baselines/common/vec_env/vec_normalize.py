@@ -41,9 +41,7 @@ class VecNormalize(VecEnvWrapper):
             return obs
 
     def _deobfilt(self, obs):
-        nb = len(obs)
-        std = (np.sqrt(self.ob_rms.var + self.epsilon))
-        return (obs * std + self.ob_rms.mean)
+        return obs # For now return it directly
 
     def reset(self):
         obs = self.venv.reset()
